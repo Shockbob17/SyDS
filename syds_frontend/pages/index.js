@@ -2,20 +2,20 @@ import { useState } from "react";
 import styles from "@/styles/GridCreator.module.css";
 
 const GridCreator = () => {
-  const rows = 4;
-  const cols = 3;
+  const rows = 10;
+  const cols = 10;
   const initialGrid = Array(rows)
     .fill(null)
-    .map(() => Array(cols).fill(0)); // Default state is 0 ("Empty")
+    .map(() => Array(cols).fill(0));
 
-  // Actions corresponding to different states
-  const actions = ["Empty", "Filled", "Trash"];
+  const actions = ["Empty", "Filled", "Trash", "Wall"];
 
   const [grid, setGrid] = useState(initialGrid);
-  const [selectedAction, setSelectedAction] = useState(1); // Default to "Filled"
+  const [selectedAction, setSelectedAction] = useState(0);
+  const [isMouseDown, setIsMouseDown] = useState(false); // Track mouse down state
 
-  // Handle cell click
-  const handleClick = (rowIndex, colIndex) => {
+  // Update grid when clicking or dragging
+  const updateGrid = (rowIndex, colIndex) => {
     setGrid((prevGrid) =>
       prevGrid.map((row, r) =>
         row.map((cell, c) =>
@@ -26,7 +26,7 @@ const GridCreator = () => {
   };
 
   return (
-    <div className={styles.centerer}>
+    <div className={styles.centerer} onMouseUp={() => setIsMouseDown(false)}>
       <div
         className={styles.gridContainer}
         style={{
@@ -38,8 +38,14 @@ const GridCreator = () => {
           row.map((item, colIndex) => (
             <div
               key={`${rowIndex}-${colIndex}`}
-              className={`${styles.GridBoxes} ${styles[actions[item]]}`} // Dynamic class based on state
-              onClick={() => handleClick(rowIndex, colIndex)}
+              className={`${styles.GridBoxes} ${styles[actions[item]]}`}
+              onMouseDown={() => {
+                setIsMouseDown(true);
+                updateGrid(rowIndex, colIndex);
+              }}
+              onMouseEnter={() => {
+                if (isMouseDown) updateGrid(rowIndex, colIndex);
+              }}
             />
           ))
         )}
@@ -49,9 +55,13 @@ const GridCreator = () => {
         {actions.map((item, index) => (
           <div
             key={index}
-            className={`${styles.GridBoxes} ${styles[item]}`}
+            className={`${styles.iconContainers} ${
+              selectedAction === index ? styles.selected : ""
+            }`}
             onClick={() => setSelectedAction(index)}
-          />
+          >
+            <div className={`${styles[item]}`} />
+          </div>
         ))}
       </div>
     </div>
