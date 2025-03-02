@@ -1,0 +1,38 @@
+services:
+  ui:
+    stdin_open: true
+    tty: true
+    image: syds_frontend
+    volumes:
+      - ../syds_frontend/.next:/syds_frontend/.next
+      - ../syds_frontend/pages:/syds_frontend/pages
+      - ../syds_frontend/public:/syds_frontend/public
+      - ../syds_frontend/styles:/syds_frontend/styles
+      - ../syds_frontend/.env:/syds_frontend/.env
+      - ../syds_frontend/package.json:/syds_frontend/package.json
+      - ../syds_frontend/package-lock.json:/syds_frontend/package-lock.json
+      - ../syds_frontend/eslint.config.mjs:/syds_frontend/eslint.config.mjs
+      - ../syds_frontend/jsconfig.json:/syds_frontend/jsconfig.json
+      - ../syds_frontend/next.config.mjs:/syds_frontend/next.config.mjs
+    ports:
+    - ${UI_HOST_PORT}:${UI_SERVICE_PORT}
+    build:
+      context: ../
+      dockerfile: build/UI.Dockerfile
+    command: npm run dev
+  
+  # backend:
+  #   stdin_open: true
+  #   tty: true
+  #   image: syds_backend
+  #   volumes: 
+  #     - ../syds_backend/src:/syds_backend/src
+  #     - ../syds_backend/tests:/syds_backend/tests
+  #   ports:
+  #   - ${BACKEND_HOST_PORT}:${BACKEND_SERVICE_PORT}
+  #   build:
+  #     context: ../
+  #     dockerfile: build/backend.Dockerfile
+  #   env_file:
+  #     - .env
+  #   command: uvicorn src.main:app --host=0.0.0.0 --port=${BACKEND_HOST_PORT} --reload

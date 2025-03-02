@@ -1,0 +1,7 @@
+:root{
+    --grey: #979797;
+}
+
+.grey{
+    color: var(--grey)
+}

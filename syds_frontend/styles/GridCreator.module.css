@@ -1,0 +1,47 @@
+.gridContainer {
+    display: grid;
+    gap: 5px;
+}
+  
+.GridBoxes {
+    width: 50px;
+    height: 50px;
+    border: 1px solid black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.Empty {
+    background-color: lightgray;
+}
+
+.Filled {
+    background-color: blue;
+}
+
+.Trash {
+    background-color: rgb(0, 88, 22);
+}
+
+.toolbar {
+    margin-bottom: 10px;
+}
+
+.toolbar{
+    display: flex;
+    flex-direction: row;
+    height: fit-content;
+    width: fit-content;
+    gap: 20px;
+    padding: 20px;
+    background-color: #d9d9d9;
+    border-radius: 30px;
+}
+
+.centerer{
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
