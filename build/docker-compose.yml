@@ -21,18 +21,18 @@ services:
       dockerfile: build/UI.Dockerfile
     command: npm run dev
   
-  # backend:
-  #   stdin_open: true
-  #   tty: true
-  #   image: syds_backend
-  #   volumes: 
-  #     - ../syds_backend/src:/syds_backend/src
-  #     - ../syds_backend/tests:/syds_backend/tests
-  #   ports:
-  #   - ${BACKEND_HOST_PORT}:${BACKEND_SERVICE_PORT}
-  #   build:
-  #     context: ../
-  #     dockerfile: build/backend.Dockerfile
-  #   env_file:
-  #     - .env
-  #   command: uvicorn src.main:app --host=0.0.0.0 --port=${BACKEND_HOST_PORT} --reload
+  backend:
+    stdin_open: true
+    tty: true
+    image: syds_backend
+    volumes: 
+      - ../syds_backend/src:/syds_backend/src
+      - ../syds_backend/tests:/syds_backend/tests
+    ports:
+    - ${BACKEND_HOST_PORT}:${BACKEND_SERVICE_PORT}
+    build:
+      context: ../
+      dockerfile: build/backend.Dockerfile
+    env_file:
+      - .env
+    command: uvicorn src.main:app --host=0.0.0.0 --port=${BACKEND_HOST_PORT} --reload
