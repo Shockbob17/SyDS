@@ -2,6 +2,8 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, List, Union
 
+from src.utils.gridSolver import gridSolver
+
 app = FastAPI()
 
 app = FastAPI()
@@ -18,18 +20,14 @@ async def find_routes(request: Request):
     try:
         data = await request.json()  # Extract raw JSON data
         grid = data.get("grid")  # Get 'grid' key
-        print(grid)
-
+        solver = gridSolver(grid)
+        print(solver.routes)
         if not grid or not isinstance(grid, list):
             raise HTTPException(status_code=400, detail="Invalid grid format")
 
         # Example: Dummy response for testing
-        result = {
-            "routes": [
-                {"shop": [2, 3], "bin": [2, 1], "path": [[2, 3], [2, 2], [2, 1]]},
-                {"shop": [4, 3], "bin": [4, 1], "path": [[4, 3], [4, 2], [4, 1]]}
-            ]
-        }
+        result = solver.routes
+        
 
         return result
 
