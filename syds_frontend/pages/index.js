@@ -1,5 +1,6 @@
 import { useState } from "react";
 import styles from "@/styles/GridCreator.module.css";
+import axios from "axios";
 
 const GridCreator = () => {
   const rows = 10;
@@ -13,6 +14,25 @@ const GridCreator = () => {
   const [grid, setGrid] = useState(initialGrid);
   const [selectedAction, setSelectedAction] = useState(0);
   const [isMouseDown, setIsMouseDown] = useState(false); // Track mouse down state
+
+  const findIdealRoutes = async (grid) => {
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/findRoutes/",
+        { grid }, // Make sure grid is passed correctly
+        { headers: { "Content-Type": "application/json" } } // Ensure JSON format
+      );
+
+      console.log("Received Routes:", response.data);
+      return response.data; // Return the response for further use
+    } catch (error) {
+      console.error(
+        "Error retrieving routes:",
+        error.response?.data || error.message
+      );
+      return null;
+    }
+  };
 
   // Update grid when clicking or dragging
   const updateGrid = (rowIndex, colIndex) => {
@@ -64,6 +84,13 @@ const GridCreator = () => {
           </div>
         ))}
       </div>
+      <button
+        onClick={() => {
+          findIdealRoutes(grid);
+        }}
+      >
+        Solve Routes
+      </button>
     </div>
   );
 };
