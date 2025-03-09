@@ -58,7 +58,8 @@ class gridSolver:
 
                 if (0 <= new_x < len(self.grid[0]) and 
                     0 <= new_y < len(self.grid) and 
-                    self.grid[new_y][new_x] != 3 and  # Not a wall
+                    self.grid[new_y][new_x] != 3  and 
+                    self.grid[new_y][new_x] != 1  and 
                     (new_x, new_y) not in visited):
 
                     queue.append(((new_x, new_y), path + [(new_x, new_y)]))
