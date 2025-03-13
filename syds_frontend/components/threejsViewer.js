@@ -89,7 +89,7 @@ const ThreeDGrid = ({ grid, routes }) => {
 
     if (routes && Object.keys(routes).length > 0) {
       Object.entries(routes).forEach(([routeName, coordinates]) => {
-        console.log(`Route Name: ${routeName}, Coordinates:`, coordinates);
+        // console.log(`Route Name: ${routeName}, Coordinates:`, coordinates);
         coordinates.forEach((item, index) => {
           if (index != 0) {
             // console.log(coordinates[index - 1]);
