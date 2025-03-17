@@ -1,2 +1,3 @@
 /build/.env
 /syds_backend/src/__pycache__
+/syds_backend/pythons/OCRWithFloorPlan/generated/
