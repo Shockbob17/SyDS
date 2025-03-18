@@ -48,10 +48,6 @@
     background-color: black;
 }
 
-.toolbar {
-    margin-bottom: 10px;
-}
-
 .toolbar{
     display: flex;
     flex-direction: row;
