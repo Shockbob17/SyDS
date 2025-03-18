@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Request, UploadFile, File, HTTPException
+from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, List, Union
+import json
 
 from src.utils.mapExtractor import mapExtractor
 from src.utils.gridSolver import gridSolver
@@ -32,6 +33,51 @@ async def findImage(images: List[UploadFile] = File(...)):
 
     return {"status": "success", "results": processed_images}
 
+@app.post("/resizingImages")
+async def resizingImages(
+    images: List[UploadFile] = File(...),
+    dataPoints: str = Form(...)
+):
+    # Parse the metadata from the form field (it should be a JSON string)
+    metadata = json.loads(dataPoints)
+    print("Metadata:", metadata)  # You can log or process the metadata as needed
+
+    # Save the uploaded files to temporary locations
+    temp_file_paths = []
+    for image in images:
+        contents = await image.read()
+        temp_path = f"/tmp/{image.filename}"
+        with open(temp_path, "wb") as f:
+            f.write(contents)
+        temp_file_paths.append(temp_path)
+
+    extractor = mapExtractor(temp_file_paths, metadata)
+    processed_images = extractor.requestScaledRegions()
+
+    return {"status": "success", "results": processed_images}
+
+@app.post("/extractingWalkway")
+async def resizingImages(
+    images: List[UploadFile] = File(...),
+    dataPoints: str = Form(...),
+    drawnRegions: str = Form(...)
+):
+    metadata = json.loads(dataPoints)
+    print("Metadata:", metadata)
+
+    regions = json.loads(drawnRegions)
+    print("regions:", type(regions))
+    temp_file_paths = []
+    for image in images:
+        contents = await image.read()
+        temp_path = f"/tmp/{image.filename}"
+        with open(temp_path, "wb") as f:
+            f.write(contents)
+        temp_file_paths.append(temp_path)
+
+    extractor = mapExtractor(temp_file_paths, metadata, regions)
+    processed_images = extractor.requestWalkways()
+    return {"status": "success", "results": processed_images}
 
 
 @app.post("/findRoutes")

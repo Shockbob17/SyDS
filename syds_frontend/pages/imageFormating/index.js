@@ -85,13 +85,13 @@ const FormattingPage = () => {
         {rawImages.map((file, index) => (
           <>
             <div
+              key={index}
               className={styles.icons}
               onClick={() => {
                 setSelectedImage(file);
               }}
             >
               <Image
-                key={index}
                 src={URL.createObjectURL(file)}
                 alt={file.name}
                 fill={true}

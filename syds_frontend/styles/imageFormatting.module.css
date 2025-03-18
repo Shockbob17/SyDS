@@ -14,6 +14,22 @@
     align-items: center;
 }
 
+.colorContainer{
+    width: 50px;
+    height: 50px;
+}
+
+.littleLabels{
+    width: 30px;
+    height: 30px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: 1px solid #d9d9d9;
+    cursor: pointer;
+}
 
 .toolbar{
     display: flex;
@@ -34,7 +50,7 @@
     align-items: center;
     justify-content: center;
     padding: 10px;
-    border: 1px solid black;
+    border: 1px solid #d9d9d9;
     cursor: pointer;
 }
 
@@ -75,3 +91,36 @@
     visibility: visible;
   }
 
+.Cross {
+    height: 100%;
+    width: 100%;
+    opacity: 0.6;
+    background-image: url("/images/cross.png");
+    background-size: cover;
+}
+
+
+.Tenant {
+    height: 100%;
+    width: 100%;
+    background-image: url("/images/shop.png");
+    background-size: cover;}
+
+.Toilet {
+    height: 100%;
+    width: 100%;
+    background-image: url("/images/toilet.png");
+    background-size: cover;
+}
+
+.Staircase {
+    height: 100%;
+    width: 100%;
+    background-image: url("/images/stairs.png");
+    background-size: cover;
+}
+
+
+.selected{
+    border: 1px solid black;
+}

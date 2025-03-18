@@ -5,7 +5,7 @@ import os
 import base64
 
 class mapExtractor():
-    def __init__(self, images):
+    def __init__(self, images, metaData=None, regions=None):
         """
         self.images is the store of the raw images input when the class is created
         This should be unprocessed images taken by a phone of a floorplan
@@ -15,8 +15,12 @@ class mapExtractor():
         self.extractedRegions will be the regions extracted from each of the floors
         """
         self.images = images
+        self.metaData = metaData
+        self.regions = regions
         self.extractedFloors = None
         self.extractedRegions = None
+        self.positionedRegions = None
+        self.extractedWalways = None
 
     def requestRegions(self):
         """
@@ -28,9 +32,48 @@ class mapExtractor():
             self.batchExtract()
         exported = []
         for image in self.extractedRegions:
-            b64_image = self._imageToBase64(image, ext='.jpg')
+            image = self._makeTransparent(image)
+            b64_image = self._imageToBase64(image, ext='.png')
             exported.append(b64_image)
         return exported
+
+    def requestScaledRegions(self):
+        """
+        Function used to scale Images and position them according to the metaData sent from the frontend
+        metaData is expected to be a json 
+
+        Returns a list of the images in base 64
+        """
+        if self.metaData is None:
+            return "This cannot be done, without data of the sizing of the floors"
+        else:
+            if self.extractedRegions is None:
+                self.batchExtract()
+            if self.positionedRegions is None:
+                self.batchScaleImages()
+            exported = []
+            for image in self.positionedRegions:
+                image = self._makeTransparent(image)
+                b64_image = self._imageToBase64(image, ext='.png')
+                exported.append(b64_image)
+            return exported
+        
+    def requestWalkways(self):
+        if self.metaData is None or self.regions is None:
+            return "This cannot be done, without data of the sizing of the floors"
+        else:
+            if self.extractedRegions is None:
+                self.batchExtract()
+            if self.positionedRegions is None:
+                self.batchScaleImages()
+            if self.extractedWalways is None:
+                self.batchExtractWalkWays()
+            exported = []
+            for image in self.extractedWalways:
+                image = self._makeTransparent(image)
+                b64_image = self._imageToBase64(image, ext='.png')
+                exported.append(b64_image)
+            return exported
 
     def batchProcess(self):
         """
@@ -44,7 +87,7 @@ class mapExtractor():
             warpedImage = self._processImage(image)
             # if warped_image is not None:
             #     # Convert the warped image (a NumPy array) to a Base64 string
-            #     b64_image = self._imageToBase64(warped_image, ext='.jpg')
+            #     b64_image = self._imageToBase64(warped_image, ext='.png')
             #     warped_images.append(b64_image)
             # else:
             #     warped_images.append(None)
@@ -79,7 +122,80 @@ class mapExtractor():
                 finalized.append(scaled)
 
         self.extractedRegions = finalized
-        
+
+    def batchScaleImages(self):
+        """
+        This function will be called from the frontend after the user has scaled each of the images
+        It will parse through the metadata and the raw Images passed through
+        and create the base images to be sent to the frontend
+
+        Sets self.positionedRegions to be the list of the padded Images
+        """
+        if self.metaData is None:
+            return "This cannot be done, without data of the sizing of the floors"
+        else: 
+            floorPlan = []
+            for data in self.metaData:
+                if data["index"] == 0:
+                    floorPlan.append(self.extractedRegions[0])
+                else:
+                    referenceImage = self.extractedRegions[0]
+                    inputImage = self.extractedRegions[data["index"]]
+                    resizedImage = cv2.resize(inputImage, (int(data["width"]), int(data["height"])), interpolation=cv2.INTER_LINEAR)
+                    image = self._createPaddedImage(referenceImage, resizedImage, int(data["x"]), int(data["y"]))
+                    floorPlan.append(image)
+
+            self.positionedRegions = floorPlan
+
+    def batchExtractWalkWays(self):
+        if self.metaData is None or self.regions is None:
+            return "This cannot be done, without data of the sizing of the floors"
+        else:
+            walkwayList = []
+            print(self.regions)
+            for index, image in enumerate(self.positionedRegions):
+                mask = np.ones(image.shape[:2], dtype=np.uint8) * 255  # 255 means keep the image
+                for region in self.regions.get(str(index), []):
+                    pts = np.array([[int(pt['x']), int(pt['y'])] for pt in region], dtype=np.int32)
+                    pts = pts.reshape((-1, 1, 2))
+                    cv2.fillPoly(mask, [pts], 0)
+
+                result = cv2.bitwise_and(image, image, mask=mask)
+                walkwayList.append(result)
+            self.extractedWalways = walkwayList
+    
+    def _makeTransparent(self, image, color=(0, 0, 0 )):
+        image_copy = image.copy()
+
+        if image_copy.shape[2] == 3:  # If the image is RGB
+            image_copy = cv2.cvtColor(image_copy, cv2.COLOR_BGR2BGRA)
+
+        # Create a mask for the target color
+        mask = np.all(image_copy[:, :, :3] == color, axis=-1)
+
+        # Set the alpha channel to 0 for the matching pixels
+        image_copy[mask, 3] = 0
+
+        return image_copy
+
+
+    def _createPaddedImage(self, referenceImage, inputImage, offsetX, offsetY):
+        """
+        Resizes the image first using the measurement in the metadata
+        """
+        heightRef, widthRef = referenceImage.shape[:2]
+        height, width = inputImage.shape[:2]
+        if width + offsetX > widthRef or height + offsetY > heightRef: 
+            return None
+        leftOffset = offsetX
+        rightOffset = widthRef - offsetX - width
+        topOffset = offsetY
+        bottomOffset = heightRef - offsetY - height
+        # print(type(ref_image))
+        dst = cv2.copyMakeBorder(inputImage, topOffset, bottomOffset, leftOffset, rightOffset, cv2.BORDER_CONSTANT, (0,0,0))
+        # plot_image(dst)
+        return dst
+
     def _scaleDownRegions(self, referenceImage, inputImage):
         """
         Function used to make sure all images are at most as tall as the first floor
@@ -88,13 +204,12 @@ class mapExtractor():
         w,h = inputImage.shape[:2]
 
         resizedImage = inputImage
-        print(wRef, hRef)
-        print(w, h)
         if h > hRef:
             newWidth = int(w * hRef/h)
             resizedImage = cv2.resize(inputImage, (newWidth, hRef), interpolation=cv2.INTER_LINEAR)
 
         return resizedImage
+    
     def _extractLargestRegion(self, image):
         """
         This is a function that is used to extract the largest region
@@ -252,7 +367,7 @@ class mapExtractor():
                 transformedImage = self._fourPointTransform(image, corners)
                 return transformedImage
     
-    def _imageToBase64(self,image_array, ext='.jpg'):
+    def _imageToBase64(self,image_array, ext='.png'):
         """
         Helper function used to encode a numpy array into a
         base64 image that can be decoded using utf
