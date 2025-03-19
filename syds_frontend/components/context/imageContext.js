@@ -9,6 +9,7 @@ export const ImageStorageProvider = ({ children }) => {
   const [paddedImages, setPaddedImages] = useState([]);
   const [drawnRegions, setDrawnRegions] = useState({});
   const [extractedWalkways, setExtractedWalkways] = useState([]);
+  const [polishedWalkeways, setPolishedWalkways] = useState({});
   const [labelColor, setLabelColor] = useState({
     0: { fill: "rgba(20, 22, 22, 0.5)", outline: "rgba(59,80,78,1)" },
     1: { fill: "rgba(15, 51, 33, 0.5)", outline: "rgba(90,160,126,1)" },
@@ -33,6 +34,8 @@ export const ImageStorageProvider = ({ children }) => {
         setExtractedWalkways,
         labelColor,
         setLabelColor,
+        polishedWalkeways,
+        setPolishedWalkways,
       }}
     >
       {children}

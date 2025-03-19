@@ -6,7 +6,7 @@ import { ImageStorageContext } from "@/components/context/imageContext";
 import { useRouter } from "next/router";
 import RegionDrawingCanvas from "@/components/DrawableCanvas";
 
-const FormattingPage = () => {
+const RegionFinding = () => {
   const [selectedCanvas, setSelectedCanvas] = useState(0);
   const {
     rawImages,
@@ -27,7 +27,7 @@ const FormattingPage = () => {
   const handleLogElements = async () => {
     console.log(drawnRegions);
     await uploadImageDimensions();
-    router.push("/regionLabelling");
+    router.push("/walkableAreaExtraction");
   };
 
   const uploadImageDimensions = async () => {
@@ -109,4 +109,4 @@ const FormattingPage = () => {
   );
 };
 
-export default FormattingPage;
+export default RegionFinding;

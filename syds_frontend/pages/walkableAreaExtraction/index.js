@@ -4,25 +4,28 @@ import Image from "next/image";
 import axios from "axios";
 import { ImageStorageContext } from "@/components/context/imageContext";
 import { useRouter } from "next/router";
+import ErasingCanvas from "@/components/ErasingCanvas";
 
-const FormattingPage = () => {
+const WalkableAreaExtraction = () => {
   const [selectedCanvas, setSelectedCanvas] = useState(0);
-  const { extractedWalkways, drawnRegions, setDrawnRegions } =
-    useContext(ImageStorageContext);
+  const {
+    extractedWalkways,
+    drawnRegions,
+    setDrawnRegions,
+    polishedWalkeways,
+    setPolishedWalkways,
+  } = useContext(ImageStorageContext);
   const router = useRouter();
 
   useEffect(() => {
     if (extractedWalkways.length == 0) {
       router.push("/imageFormating");
-    } else {
-      setSelectedCanvas(extractedWalkways[0]);
     }
   }, [extractedWalkways]);
 
   const handleLogElements = async () => {
-    // router.push("/regionLabelling");
-    console.log(drawnRegions);
-    await uploadImageDimensions();
+    console.log(polishedWalkeways);
+    router.push("/regionLabelling");
   };
 
   return (
@@ -33,7 +36,15 @@ const FormattingPage = () => {
             <div
               key={index}
               style={{ display: selectedCanvas === index ? "block" : "none" }}
-            ></div>
+            >
+              <ErasingCanvas
+                backgroundImage={file}
+                // Pass a callback to update drawn regions in the parent.
+                savePolished={(canvas) => {
+                  setPolishedWalkways((prev) => ({ ...prev, [index]: canvas }));
+                }}
+              />
+            </div>
           ))}
       </div>
       <div className={styles.toolbar}>
@@ -61,4 +72,4 @@ const FormattingPage = () => {
   );
 };
 
-export default FormattingPage;
+export default WalkableAreaExtraction;

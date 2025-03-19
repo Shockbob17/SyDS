@@ -4,9 +4,9 @@ import { ImageStorageContext } from "@/components/context/imageContext";
 import { useRouter } from "next/router";
 import LabelledRegionsCanvas from "@/components/SelectingCanvas";
 
-const FormattingPage = () => {
+const RegionLabelling = () => {
   const [selectedCanvas, setSelectedCanvas] = useState(0);
-  const { drawnRegions, labelColor, extractedWalkways } =
+  const { drawnRegions, labelColor, extractedWalkways, polishedWalkeways } =
     useContext(ImageStorageContext);
   const router = useRouter();
   // Stores region labels per canvas. For example: { 0: { 0: 1, 1: 2 }, 1: { ... } }
@@ -41,7 +41,7 @@ const FormattingPage = () => {
               style={{ display: selectedCanvas === index ? "block" : "none" }}
             >
               <LabelledRegionsCanvas
-                backgroundImage={file}
+                backgroundImage={polishedWalkeways[index] || file}
                 shapes={drawnRegions[index] || []}
                 onShapeLabelChange={handleShapeLabelChange}
                 label={selectedLabel}
@@ -97,4 +97,4 @@ const FormattingPage = () => {
   );
 };
 
-export default FormattingPage;
+export default RegionLabelling;

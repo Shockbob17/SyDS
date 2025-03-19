@@ -28,7 +28,6 @@ const LabelledRegionsCanvas = ({
   const canvasRef = useRef(null);
   // The index of the currently selected shape.
   const [selectedShapeIndex, setSelectedShapeIndex] = useState(null);
-
   // Draw the canvas background and shapes.
   const drawCanvas = () => {
     const canvas = canvasRef.current;
@@ -48,7 +47,9 @@ const LabelledRegionsCanvas = ({
 
         drawShapes(ctx);
       };
-      bg.src = `data:image/jpeg;base64,${backgroundImage}`;
+      bg.src = backgroundImage.startsWith("data:image/")
+        ? backgroundImage
+        : `data:image/jpeg;base64,${backgroundImage}`;
     } else {
       drawShapes(ctx);
     }
