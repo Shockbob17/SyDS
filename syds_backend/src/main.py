@@ -3,8 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, List, Union
 import json
 
-from src.utils.mapExtractor import mapExtractor
+from src.utils.FloorPlanExtractor import floorPlanExtractor
 from src.utils.gridSolver import gridSolver
+from src.utils.mapCropper import mapCropper
 
 app = FastAPI()
 app.add_middleware(
@@ -28,45 +29,19 @@ async def findImage(images: List[UploadFile] = File(...)):
         temp_file_paths.append(temp_path)
 
     # Process the images with mapExtractor
-    extractor = mapExtractor(temp_file_paths)
+    extractor = floorPlanExtractor(temp_file_paths)
     processed_images = extractor.requestRegions()
 
     return {"status": "success", "results": processed_images}
 
-@app.post("/resizingImages")
-async def resizingImages(
-    images: List[UploadFile] = File(...),
-    dataPoints: str = Form(...)
-):
-    # Parse the metadata from the form field (it should be a JSON string)
-    metadata = json.loads(dataPoints)
-    print("Metadata:", metadata)  # You can log or process the metadata as needed
 
-    # Save the uploaded files to temporary locations
-    temp_file_paths = []
-    for image in images:
-        contents = await image.read()
-        temp_path = f"/tmp/{image.filename}"
-        with open(temp_path, "wb") as f:
-            f.write(contents)
-        temp_file_paths.append(temp_path)
-
-    extractor = mapExtractor(temp_file_paths, metadata)
-    processed_images = extractor.requestScaledRegions()
-
-    return {"status": "success", "results": processed_images}
 
 @app.post("/extractingWalkway")
-async def resizingImages(
+async def extractingWalkway(
     images: List[UploadFile] = File(...),
-    dataPoints: str = Form(...),
     drawnRegions: str = Form(...)
 ):
-    metadata = json.loads(dataPoints)
-    print("Metadata:", metadata)
-
     regions = json.loads(drawnRegions)
-    print("regions:", type(regions))
     temp_file_paths = []
     for image in images:
         contents = await image.read()
@@ -74,8 +49,7 @@ async def resizingImages(
         with open(temp_path, "wb") as f:
             f.write(contents)
         temp_file_paths.append(temp_path)
-
-    extractor = mapExtractor(temp_file_paths, metadata, regions)
+    extractor = mapCropper(temp_file_paths, regions)
     processed_images = extractor.requestWalkways()
     return {"status": "success", "results": processed_images}
 

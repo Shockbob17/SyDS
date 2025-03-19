@@ -1,6 +1,5 @@
 import styles from "@/styles/imageFormatting.module.css";
 import { useState, useRef, useEffect, useContext } from "react";
-import Image from "next/image";
 import axios from "axios";
 import { ImageStorageContext } from "@/components/context/imageContext";
 import { useRouter } from "next/router";
@@ -33,21 +32,12 @@ const RegionFinding = () => {
   const uploadImageDimensions = async () => {
     try {
       const formData = new FormData();
-      rawImages.forEach((imageFile) => {
+
+      // Convert base64 images to File objects
+      paddedImages.forEach((base64String, index) => {
+        const imageFile = base64ToFile(base64String, `image_${index}.png`);
         formData.append("images", imageFile);
       });
-
-      const dataPoints = elements.map((el, index) => ({
-        index,
-        x: el.x,
-        y: el.y,
-        width: el.width,
-        height: el.height,
-        opacity: el.opacity,
-      }));
-
-      // Append the JSON stringified metadata to the formData
-      formData.append("dataPoints", JSON.stringify(dataPoints));
 
       formData.append("drawnRegions", JSON.stringify(drawnRegions));
 
@@ -55,6 +45,7 @@ const RegionFinding = () => {
         "http://localhost:8000/extractingWalkway",
         formData
       );
+
       console.log(response.data);
       setExtractedWalkways(response.data.results);
     } catch (error) {
@@ -63,6 +54,22 @@ const RegionFinding = () => {
         error.response?.data || error.message
       );
     }
+  };
+
+  const base64ToFile = (base64String, filename) => {
+    // Extract the mime type from the base64 string
+    const mimeType = base64String.match(/data:(.*);base64/)[1];
+    const byteCharacters = atob(base64String.split(",")[1]); // Decode base64
+
+    // Convert to array buffer
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType });
+
+    return new File([blob], filename, { type: mimeType });
   };
 
   return (
@@ -96,7 +103,11 @@ const RegionFinding = () => {
               >
                 <img
                   key={index}
-                  src={`data:image/jpeg;base64,${file}`}
+                  src={
+                    file.startsWith("data:image")
+                      ? file
+                      : `data:image/jpeg;base64,${file}`
+                  }
                   alt="Final Processed Image"
                   style={{ maxWidth: "100%" }}
                 />

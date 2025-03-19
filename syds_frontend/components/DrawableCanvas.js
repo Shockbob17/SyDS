@@ -29,7 +29,9 @@ const RegionDrawingCanvas = ({ backgroundImage, onShapesChange }) => {
       }
       drawCanvas(points, shapes, img);
     };
-    img.src = `data:image/jpeg;base64,${backgroundImage}`;
+    img.src = backgroundImage.startsWith("data:image/")
+      ? backgroundImage
+      : `data:image/jpeg;base64,${backgroundImage}`;
   }, [backgroundImage]);
 
   // Draw the canvas: clear, then draw the background image (if loaded)

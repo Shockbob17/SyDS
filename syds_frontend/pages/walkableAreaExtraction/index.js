@@ -1,20 +1,13 @@
 import styles from "@/styles/imageFormatting.module.css";
 import { useState, useRef, useEffect, useContext } from "react";
-import Image from "next/image";
-import axios from "axios";
 import { ImageStorageContext } from "@/components/context/imageContext";
 import { useRouter } from "next/router";
 import ErasingCanvas from "@/components/ErasingCanvas";
 
 const WalkableAreaExtraction = () => {
   const [selectedCanvas, setSelectedCanvas] = useState(0);
-  const {
-    extractedWalkways,
-    drawnRegions,
-    setDrawnRegions,
-    polishedWalkeways,
-    setPolishedWalkways,
-  } = useContext(ImageStorageContext);
+  const { extractedWalkways, polishedWalkeways, setPolishedWalkways } =
+    useContext(ImageStorageContext);
   const router = useRouter();
 
   useEffect(() => {
@@ -59,7 +52,11 @@ const WalkableAreaExtraction = () => {
               >
                 <img
                   key={index}
-                  src={`data:image/jpeg;base64,${file}`}
+                  src={
+                    file.startsWith("`data:image/")
+                      ? file
+                      : `data:image/jpeg;base64,${file}`
+                  }
                   alt="Final Processed Image"
                   style={{ maxWidth: "100%" }}
                 />
