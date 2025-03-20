@@ -53,6 +53,24 @@ async def extractingWalkway(
     processed_images = extractor.requestWalkways()
     return {"status": "success", "results": processed_images}
 
+@app.post("/createNumpy")
+async def createNumpy(    images: List[UploadFile] = File(...),
+    drawnRegions: str = Form(...),
+    shapeLabels: str = Form(...)):
+    regions = json.loads(drawnRegions)
+    labels = json.loads(shapeLabels)
+    temp_file_paths = []
+    for image in images:
+        contents = await image.read()
+        temp_path = f"/tmp/{image.filename}"
+        with open(temp_path, "wb") as f:
+            f.write(contents)
+        temp_file_paths.append(temp_path)
+    print(regions)
+    print(labels)
+    return{"status": "success", "results": None}
+
+
 
 @app.post("/findRoutes")
 async def find_routes(request: Request):

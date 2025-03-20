@@ -49,7 +49,7 @@ const LabelledRegionsCanvas = ({
       };
       bg.src = backgroundImage.startsWith("data:image/")
         ? backgroundImage
-        : `data:image/jpeg;base64,${backgroundImage}`;
+        : `data:image/png;base64,${backgroundImage}`;
     } else {
       drawShapes(ctx);
     }

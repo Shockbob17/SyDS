@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useContext } from "react";
 import { ImageStorageContext } from "@/components/context/imageContext";
 import { useRouter } from "next/router";
 import ErasingCanvas from "@/components/ErasingCanvas";
+import axios from "axios";
 
 const WalkableAreaExtraction = () => {
   const [selectedCanvas, setSelectedCanvas] = useState(0);
@@ -55,7 +56,7 @@ const WalkableAreaExtraction = () => {
                   src={
                     file.startsWith("`data:image/")
                       ? file
-                      : `data:image/jpeg;base64,${file}`
+                      : `data:image/png;base64,${file}`
                   }
                   alt="Final Processed Image"
                   style={{ maxWidth: "100%" }}

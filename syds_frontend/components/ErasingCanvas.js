@@ -22,7 +22,7 @@ const ErasingCanvas = ({ backgroundImage, savePolished }) => {
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       }
     };
-    img.src = `data:image/jpeg;base64,${backgroundImage}`;
+    img.src = `data:image/png;base64,${backgroundImage}`;
   }, [backgroundImage]);
 
   // Eraser function: draws a circle using destination-out composite mode.
@@ -119,7 +119,7 @@ const ErasingCanvas = ({ backgroundImage, savePolished }) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     // Get the data URL in PNG format.
-    const dataURL = canvas.toDataURL("image/jpeg");
+    const dataURL = canvas.toDataURL("image/png");
     savePolished(dataURL);
   };
 

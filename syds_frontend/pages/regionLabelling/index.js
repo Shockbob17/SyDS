@@ -3,6 +3,7 @@ import { useState, useEffect, useContext } from "react";
 import { ImageStorageContext } from "@/components/context/imageContext";
 import { useRouter } from "next/router";
 import LabelledRegionsCanvas from "@/components/SelectingCanvas";
+import axios from "axios";
 
 const RegionLabelling = () => {
   const [selectedCanvas, setSelectedCanvas] = useState(0);
@@ -29,6 +30,99 @@ const RegionLabelling = () => {
         [regionIndex]: label,
       },
     }));
+  };
+
+  const processData = async () => {
+    console.log(shapeLabels);
+    // await uploadData();
+    saveData();
+  };
+
+  const saveData = () => {
+    // Determine which walkways to use:
+    // If polishedWalkeways exists (and is non-empty), use its values,
+    // otherwise, use extractedWalkways.
+    const walkwaysToSend =
+      polishedWalkeways && Object.keys(polishedWalkeways).length > 0
+        ? Object.values(polishedWalkeways)
+        : extractedWalkways;
+
+    // Create an object with the data to save
+    const dataToSave = {
+      walkways: walkwaysToSend,
+      drawnRegions: drawnRegions,
+      shapeLabels: shapeLabels,
+    };
+
+    // Convert the data to a JSON string (with formatting for readability)
+    const jsonData = JSON.stringify(dataToSave, null, 2);
+
+    // Create a Blob from the JSON data
+    const blob = new Blob([jsonData], { type: "application/json" });
+
+    // Create a URL for the Blob
+    const url = URL.createObjectURL(blob);
+
+    // Create a temporary link element to trigger the download
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "data.json"; // Set the file name for the download
+    document.body.appendChild(a);
+    a.click();
+
+    // Clean up: remove the temporary link and revoke the Blob URL
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const uploadData = async () => {
+    try {
+      const formData = new FormData();
+
+      // Choose which walkways to send:
+      // If polishedWalkeways is not empty, use its values (assuming it holds base64 strings);
+      // Otherwise, use extractedWalkways.
+      const walkwaysToSend =
+        polishedWalkeways && Object.keys(polishedWalkeways).length > 0
+          ? Object.values(polishedWalkeways)
+          : extractedWalkways;
+
+      walkwaysToSend.forEach((base64String, index) => {
+        const imageFile = base64ToFile(base64String, `image_${index}.png`);
+        formData.append("images", imageFile);
+      });
+
+      formData.append("drawnRegions", JSON.stringify(drawnRegions));
+      formData.append("shapeLabels", JSON.stringify(shapeLabels));
+
+      const response = await axios.post(
+        "http://localhost:8000/createNumpy",
+        formData
+      );
+
+      console.log(response.data);
+    } catch (error) {
+      console.error(
+        "Error sending images to backend:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
+  const base64ToFile = (base64String, filename) => {
+    // Extract the mime type from the base64 string
+    const mimeType = base64String.match(/data:(.*);base64/)[1];
+    const byteCharacters = atob(base64String.split(",")[1]); // Decode base64
+
+    // Convert to array buffer
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType });
+
+    return new File([blob], filename, { type: mimeType });
   };
 
   return (
@@ -83,16 +177,14 @@ const RegionLabelling = () => {
               onClick={() => setSelectedCanvas(index)}
             >
               <img
-                src={`data:image/jpeg;base64,${file}`}
+                src={`data:image/png;base64,${file}`}
                 alt={`Final Processed Image ${index}`}
                 style={{ maxWidth: "100%" }}
               />
             </div>
           ))}
       </div>
-      <button onClick={() => console.log(shapeLabels)}>
-        Log Region Labels
-      </button>
+      <button onClick={() => processData()}>Log Region Labels</button>
     </div>
   );
 };

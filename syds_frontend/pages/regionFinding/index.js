@@ -106,7 +106,7 @@ const RegionFinding = () => {
                   src={
                     file.startsWith("data:image")
                       ? file
-                      : `data:image/jpeg;base64,${file}`
+                      : `data:image/png;base64,${file}`
                   }
                   alt="Final Processed Image"
                   style={{ maxWidth: "100%" }}

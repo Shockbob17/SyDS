@@ -65,7 +65,7 @@ const ImageProcessing = () => {
           drawAll(loadedElements);
         }
       };
-      img.src = `data:image/jpeg;base64,${b64}`;
+      img.src = `data:image/png;base64,${b64}`;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extractedMaps]);
