@@ -40,12 +40,12 @@ const RegionLabelling = () => {
 
   const saveData = () => {
     // Determine which walkways to use:
-    // If polishedWalkeways exists (and is non-empty), use its values,
-    // otherwise, use extractedWalkways.
     const walkwaysToSend =
-      polishedWalkeways && Object.keys(polishedWalkeways).length > 0
-        ? Object.values(polishedWalkeways)
+      polishedWalkeways && polishedWalkeways.length > 0
+        ? polishedWalkeways
         : extractedWalkways;
+
+    console.log("Walkways to send:", walkwaysToSend); // Debugging output
 
     // Create an object with the data to save
     const dataToSave = {
