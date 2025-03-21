@@ -7,8 +7,13 @@ import axios from "axios";
 
 const RegionLabelling = () => {
   const [selectedCanvas, setSelectedCanvas] = useState(0);
-  const { drawnRegions, labelColor, extractedWalkways, polishedWalkeways } =
-    useContext(ImageStorageContext);
+  const {
+    drawnRegions,
+    labelColor,
+    extractedWalkways,
+    polishedWalkeways,
+    paddedImages,
+  } = useContext(ImageStorageContext);
   const router = useRouter();
   // Stores region labels per canvas. For example: { 0: { 0: 1, 1: 2 }, 1: { ... } }
   const [shapeLabels, setShapeLabels] = useState({});
@@ -40,10 +45,15 @@ const RegionLabelling = () => {
 
   const saveData = () => {
     // Determine which walkways to use:
-    const walkwaysToSend =
-      polishedWalkeways && polishedWalkeways.length > 0
-        ? polishedWalkeways
-        : extractedWalkways;
+    const walkwaysToSend = [];
+    for (let index = 0; index < extractedWalkways.length; index++) {
+      const walkway = extractedWalkways[index];
+      if (polishedWalkeways.hasOwnProperty(String(index))) {
+        walkwaysToSend.push(polishedWalkeways[String(index)]);
+      } else {
+        walkwaysToSend.push(walkway);
+      }
+    }
 
     console.log("Walkways to send:", walkwaysToSend); // Debugging output
 
@@ -52,6 +62,7 @@ const RegionLabelling = () => {
       walkways: walkwaysToSend,
       drawnRegions: drawnRegions,
       shapeLabels: shapeLabels,
+      paddedImages: paddedImages,
     };
 
     // Convert the data to a JSON string (with formatting for readability)
