@@ -61,7 +61,7 @@ const FormattingPage = () => {
         formData
       );
       setExtractedMaps(response.data.results);
-      console.log(response.data.results);
+      // console.log(response.data.results);
     } catch (error) {
       console.error(
         "Error sending images to backend:",

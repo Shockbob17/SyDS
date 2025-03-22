@@ -334,7 +334,7 @@ const ImageProcessing = () => {
   // Example usage
   const handleExtractImages = () => {
     const base64Images = extractElementsAsBase64();
-    console.log(base64Images); // Logs an array of base64 strings for each element
+    // console.log(base64Images); // Logs an array of base64 strings for each element
     return base64Images;
   };
 

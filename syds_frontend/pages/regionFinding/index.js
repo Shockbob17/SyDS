@@ -8,8 +8,7 @@ import RegionDrawingCanvas from "@/components/DrawableCanvas";
 const RegionFinding = () => {
   const [selectedCanvas, setSelectedCanvas] = useState(0);
   const {
-    rawImages,
-    elements,
+    setPaddedImages,
     paddedImages,
     drawnRegions,
     setDrawnRegions,
@@ -22,6 +21,52 @@ const RegionFinding = () => {
       router.push("/imageFormating");
     }
   }, [paddedImages]);
+
+  const LoadJson = () => {
+    const fileInputRef = useRef(null);
+
+    const addJson = () => {
+      fileInputRef.current.click();
+    };
+
+    const handleJsonFile = (event) => {
+      const selectedFiles = event.target.files;
+      if (!selectedFiles || selectedFiles.length === 0) return;
+
+      const jsonFile = selectedFiles[0];
+      const reader = new FileReader();
+
+      // Triggered when reading is complete
+      reader.onload = (e) => {
+        try {
+          const jsonData = JSON.parse(e.target.result);
+          // Access specific property from JSON data
+          const loadImages = jsonData.paddedImages;
+          console.log("paddedImages:", loadImages);
+          console.log("actual padded:", paddedImages);
+          setPaddedImages(loadImages);
+        } catch (err) {
+          console.error("Invalid JSON:", err.message);
+        }
+      };
+
+      // Read the file as text
+      reader.readAsText(jsonFile);
+    };
+
+    return (
+      <div className={`${styles.tooltip}`} onClick={addJson}>
+        <p style={{ textAlign: "center" }}>Click to add a json file</p>
+        <span className={styles.tooltiptext}>Click To Read a json File</span>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleJsonFile}
+          style={{ display: "none" }}
+        />
+      </div>
+    );
+  };
 
   const handleLogElements = async () => {
     console.log(drawnRegions);
@@ -116,6 +161,7 @@ const RegionFinding = () => {
           ))}
       </div>
       <button onClick={() => handleLogElements()}>Proceed</button>
+      <LoadJson />
     </div>
   );
 };
