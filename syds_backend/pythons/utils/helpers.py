@@ -51,7 +51,7 @@ def extractOuterWalls(base64Img):
         snappedPts = np.array(snappedPts, dtype=np.int32).reshape((-1, 1, 2))
         return snappedPts
     
-def createNewPathWithCoordinate(coord, skeleton, limit):
+def createNewPathWithCoordinate(coord, skeleton, limit, tenants=False):
     """
     Returns numpy array with an additional line drawn between the coord and the closest point on the skeleton if the coord is within the limit
     """
@@ -61,11 +61,7 @@ def createNewPathWithCoordinate(coord, skeleton, limit):
         (0, -1),
         (0, 1),    
         (-1, 0),  
-        (1, 0),    
-        (-1, -1), 
-        (1, -1),   
-        (-1, 1),   
-        (1, 1)     
+        (1, 0),      
     ]
     
     found_points = {}
@@ -95,15 +91,26 @@ def createNewPathWithCoordinate(coord, skeleton, limit):
     
     shortest_distance = float('inf')
     shortest_point = None
-    
+    connecting_direction = None
+
     for d, point in found_points.items():
         distance = np.sqrt((point[0] - coord[0])**2 + (point[1] - coord[1])**2)
         if distance < shortest_distance:
             shortest_distance = distance
             shortest_point = point
+            connecting_direction = d
 
     rr, cc = line(coord[1], coord[0], shortest_point[1], shortest_point[0])
     new_skeleton[rr, cc] = 1 
+    if tenants:
+        spacing= 5
+    # Adding line for agnets to stand on
+        if connecting_direction[0] != 0:
+            rr2, cc2 = line(coord[1]- spacing, coord[0], coord[1]+spacing, coord[0])
+            new_skeleton[rr2, cc2] = 1 
+        else:
+            rr2, cc2 = line(coord[1], coord[0] - spacing , coord[1], coord[0] + spacing)
+            new_skeleton[rr2, cc2] = 1
     
     return new_skeleton
 
