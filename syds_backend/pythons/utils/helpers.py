@@ -122,7 +122,81 @@ def gettingTenantWalls(regions, shape):
         regionPoints[regionType] = currentRegions  
     return regionPoints
 
-  
+def breakThroughWalls(skeleton, blockDict, spacer= 5):
+    # print(skeleton)
+    # plt.imshow(skeleton)
+    result = {}
+    blockSkipper = {}
+    for regionTypes in blockDict:
+        # print(regionTypes)
+        regions = (blockDict[regionTypes])
+        listRegions = []
+        listSkipper = []
+        for region in (regions):
+            workingRegion = []
+            workingSkipper = []
+            skipperCount = 0
+            for index, coordinates in enumerate(region): 
+                if index == 0:
+                    workingRegion.append(coordinates)
+                    continue
+                reference = (region[index - 1])
+                point = coordinates
+                pointsToBeAdded = []
+                reverse = False
+                if (reference[0] == point[0]):
+                    # Vertical Line
+                    xCoordinate = reference[0]
+                    if reference[1] >point [1]:
+                        reverse = True
+                    yCoordinates = [min(reference[1], point[1]) + i for i in range(abs(reference[1] - point[1]) + 1)]
+                    for yCoordinate in yCoordinates:
+                        if skeleton[yCoordinate, xCoordinate] == 1: 
+                            workingSkipper.append(index  + skipperCount * 2)
+                            skipperCount +=1
+                            if yCoordinate - spacer in yCoordinates:
+                                pointsToBeAdded.append((xCoordinate, yCoordinate - spacer))
+                            else:
+                                pointsToBeAdded.append((xCoordinate, min(yCoordinates)))
+                            if yCoordinate + spacer in yCoordinates:
+                                pointsToBeAdded.append((xCoordinate, yCoordinate + spacer))
+                            else:
+                                pointsToBeAdded.append((xCoordinate, max(yCoordinates)))
+                            break
+                else:
+                    # Horizontal Line
+                    xCoordinates = [min(reference[0], point[0]) + i for i in range(abs(reference[0] - point[0]) + 1)]
+                    yCoordinate = reference[1]
+                    if reference[0] >point[0]:
+                        reverse = True
+                    for xCoordinate in xCoordinates:
+                        if skeleton[yCoordinate, xCoordinate] == 1: 
+                            workingSkipper.append(index + skipperCount * 2)
+                            skipperCount +=1
+                            if xCoordinate - spacer in xCoordinates:
+                                pointsToBeAdded.append((xCoordinate - spacer, yCoordinate))
+                            else:
+                                pointsToBeAdded.append((min(xCoordinates), yCoordinate))
+                            if xCoordinate + spacer in xCoordinates:
+                                pointsToBeAdded.append((xCoordinate + spacer, yCoordinate))
+                            else:
+                                pointsToBeAdded.append((max(xCoordinates), yCoordinate))
+                            break
+                if reverse:
+                    for anotherPoint in reversed(pointsToBeAdded):
+                        workingRegion.append((anotherPoint[0], anotherPoint[1]))
+                else:
+                    for anotherPoint in (pointsToBeAdded):
+                        workingRegion.append((anotherPoint[0], anotherPoint[1]))
+                workingRegion.append((point[0], point[1]))
+            # print(region)
+            listRegions.append(workingRegion)
+            listSkipper.append(workingSkipper)
+        # print(listRegions)
+        result[regionTypes] = listRegions
+        blockSkipper[regionTypes] = listSkipper
+    return result, blockSkipper
+
 # Actually the helper functions
 def plotNumpyArrayOverImage(image, skeleton, title="---"):
     """
@@ -167,23 +241,50 @@ def plotLinesOverImage(image, lines, figSize = (10,8), title="---"):
     plt.axis('off')
     plt.show()
 
-def plotPOIOverImage(image, POIDict, figSize = (10,8), title="---"):
+def plotPOIOverImage(image, POIDict, POISkipper, figSize=(10,8), title="---"):
     """
-    Given a dictionary like {1: [[(x,y),(x,y) ...],[(x,y),(x,y) ...], ....], 2: ....}
-    Plots out the POI on the image
+    Given a POIDict (e.g., 
+      {1: [[(x,y), (x,y), ...], [(x,y), (x,y), ...], ...], 2: ...}),
+    and a POISkipper dictionary (e.g., 
+      {1: [[1,4], [2], ...], 2: [[], [], ...], 3: [[3], [2], ...]}),
+    where each inner list in POISkipper indicates the indices of the starting points of segments to skip 
+    (i.e., skip drawing the line from that point to the next point),
+    this function draws each contour onto the image accordingly.
+
+    For each contour:
+      - It iterates over each point.
+      - For each segment from point[i] to point[(i+1)%n] (wrapping at the end),
+        it checks if i is in the corresponding skip list.
+      - If not, it draws the line segment in red.
     """
     plt.figure(figsize=figSize)
     
-    # If a background image is provided, show it.
-    for index, listTenants in POIDict.items():
-        for tenant in listTenants:
-            cnt = np.array(tenant, dtype=np.int32).reshape((-1, 1, 2))
-            cv2.drawContours(image, [cnt], -1, (0,0,255), 2)
+    # Loop over each key in POIDict
+    for key, contours in POIDict.items():
+        # Get the corresponding list of skip-lists; if missing, use None
+        skipContours = POISkipper.get(key, None)
+        for i, contour in enumerate(contours):
+            # For this contour, determine the skip indices (if none provided, use an empty list)
+            if skipContours is not None and i < len(skipContours):
+                skip_indices = skipContours[i]
+            else:
+                skip_indices = []
+            
+            n = len(contour)
+            # Iterate over each point index in the contour
+            for j in range(n):
+                # If the current index is in the skip list, skip drawing the segment from this point to the next
+                if j in skip_indices:
+                    continue
+                # Wrap around: next index is (j+1) mod n
+                p1 = tuple(contour[j])
+                p2 = tuple(contour[(j+1) % n])
+                cv2.line(image, p1, p2, (0, 0, 255), 2)
+    
     plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     plt.title(title)
     plt.axis('off')
     plt.show()
-
 
 def base64ToImage(base64_string):
     """
@@ -235,9 +336,9 @@ def processPoints(pointsDict):
             if (index == len(pointsDict) - 1):
                 startingPoint = refinedPoints[0]
                 if checkHorizontal(startingPoint, point):
-                    newPoint = (int(point[0]), int(startingPoint[1]))
+                    newPoint = (int(referencePoint[0]), int(startingPoint[1]))
                 else:
-                    newPoint = (int(startingPoint[0]), int(point[1]))
+                    newPoint = (int(startingPoint[0]), int(referencePoint[1]))
                 refinedPoints.append(newPoint)
             else:
                 if (checkHorizontal(referencePoint, point)):
@@ -245,6 +346,7 @@ def processPoints(pointsDict):
                 else:
                     newPoint = (int(referencePoint[0]), int(point[1]))
                 refinedPoints.append(newPoint)
+    refinedPoints.append(refinedPoints[0])
     return refinedPoints
 
 def checkHorizontal(referencePoint, point):
@@ -265,3 +367,14 @@ def checkHorizontal(referencePoint, point):
         return True
     else:
         return False
+    
+def convertPointsToNumpy(coords):
+    """
+    Given a list of tuple of coordinates, convert them into a numpy array in the same format for adding to OuterWalls
+    """
+    if coords[0] != coords[-1]:
+        coords = coords + [coords[0]]
+    
+    # Convert to numpy array with the appropriate shape
+    contour = np.array(coords, dtype=np.int32).reshape((-1, 1, 2))
+    return contour
