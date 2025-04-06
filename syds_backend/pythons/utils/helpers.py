@@ -247,6 +247,8 @@ def plotLinesOverImage(image, lines, figSize = (10,8), title="---"):
     Function that is used to draw lines over the iamge
     """
     n = len(lines)
+    print("yes")
+    print(lines)
     for index, contour in enumerate(lines):
         # For this contour, determine the skip indices (if none provided, use an empty list)
         # Iterate over each point index in the contour
@@ -304,6 +306,29 @@ def plotPOIOverImage(image, POIDict, POISkipper, figSize=(10,8), title="---"):
     plt.title(title)
     plt.axis('off')
     plt.show()
+
+def draw_lines_on_image(image, line_segments, color=(0, 0, 255), thickness=2, title="---"):
+    """
+    Draws each line segment on the provided image.
+
+    Parameters:
+      image (np.ndarray): The image on which to draw the lines.
+      line_segments (list): A list of tuples, each containing two endpoints (x, y).
+      color (tuple): Color of the lines in BGR format (default is red).
+      thickness (int): Thickness of the drawn lines.
+      
+    Returns:
+      np.ndarray: The image with the drawn lines.
+    """
+    for segment in line_segments:
+        pt1, pt2 = segment  # Each segment is ((x1, y1), (x2, y2))
+        cv2.line(image, pt1, pt2, color, thickness)
+
+    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    plt.title(title)
+    plt.axis('off')
+    plt.show()
+    return image
 
 def base64ToImage(base64_string):
     """
@@ -386,3 +411,35 @@ def checkHorizontal(referencePoint, point):
         return True
     else:
         return False
+    
+
+def convertSkeletonToLines(skeleton, epsilon=2.0):
+    """
+    Converts a binary skeleton (numpy array) to a list of line segments.
+    
+    Parameters:
+        skeleton (np.ndarray): A binary image where the route is marked (e.g., 0 and 1 or 0 and 255).
+        epsilon (float): The approximation accuracy. A larger value results in fewer line segments.
+        
+    Returns:
+        lines (list): A list of line segments where each segment is represented as ((x1, y1), (x2, y2)).
+    """
+    # Ensure the skeleton is in an 8-bit format (0 or 255)
+    skeleton_uint8 = (skeleton * 255).astype(np.uint8)
+    
+    # Find contours in the skeleton. Use RETR_EXTERNAL if the routes are isolated.
+    contours, _ = cv2.findContours(skeleton_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    
+    lines = []
+    # Process each contour
+    for cnt in contours:
+        # Approximate the contour to a polyline to simplify it.
+        approx = cv2.approxPolyDP(cnt, epsilon, closed=False)
+        # Reshape the approximated contour to get a list of points.
+        pts = approx.reshape(-1, 2)
+        # For each adjacent pair of points, create a line segment.
+        for i in range(len(pts) - 1):
+            line_segment = (tuple(pts[i]), tuple(pts[i+1]))
+            lines.append(line_segment)
+    
+    return lines
