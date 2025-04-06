@@ -412,8 +412,7 @@ def checkHorizontal(referencePoint, point):
     else:
         return False
     
-
-def convertSkeletonToLines(skeleton, epsilon=2.0):
+def convertSkeletonToLines(skeleton, epsilon=0.0):
     """
     Converts a binary skeleton (numpy array) to a list of line segments.
     
