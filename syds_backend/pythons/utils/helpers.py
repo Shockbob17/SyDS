@@ -21,13 +21,13 @@ def extractRoutesArray(base64Img):
     skeleton_pruned = pruned > 0
     return skeleton_pruned.astype(np.uint8)
 
-def extractOuterWalls(base64Img):
+def extractOuterWalls(base64Img, blocksize= 15, constant =5):
     """
     Returns the list of coordinates that makes up the external walls of the building
     """
     image = base64ToImage(base64Img)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 5)
+    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, blocksize, constant)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
     binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
 
@@ -40,18 +40,16 @@ def extractOuterWalls(base64Img):
         approx = cv2.approxPolyDP(contour, epsilon, True)
 
         snappedPts = []
-        for i in range(len(approx)):
-            p1 = tuple(approx[i][0])
+        for i in range(len(approx) -1):
+            if (i == 0):
+                snappedPts.append((approx[i][0][0], approx[i][0][1]))
+            p1 = snappedPts[-1]
             p2 = tuple(approx[(i + 1) % len(approx)][0])
-            # Make sure to go check and fix this later
-            # This is meant to fix the points however, newP2, the fixed point, is not being used
-            newP1, newP2 = snapAngle(p1,p2)
-            snappedPts.append(newP1)
-        snappedPts.append(snappedPts[0])
-        snappedPts = np.array(snappedPts, dtype=np.int32).reshape((-1, 1, 2))
+            _,  newP2 = snapAngle(p1,p2)
+            snappedPts.append(newP2)
         return snappedPts
     
-def createNewPathWithCoordinate(coord, skeleton, limit):
+def createNewPathWithCoordinate(coord, skeleton, limit, tenants=False):
     """
     Returns numpy array with an additional line drawn between the coord and the closest point on the skeleton if the coord is within the limit
     """
@@ -61,11 +59,7 @@ def createNewPathWithCoordinate(coord, skeleton, limit):
         (0, -1),
         (0, 1),    
         (-1, 0),  
-        (1, 0),    
-        (-1, -1), 
-        (1, -1),   
-        (-1, 1),   
-        (1, 1)     
+        (1, 0),      
     ]
     
     found_points = {}
@@ -95,16 +89,36 @@ def createNewPathWithCoordinate(coord, skeleton, limit):
     
     shortest_distance = float('inf')
     shortest_point = None
-    
+    connecting_direction = None
+
     for d, point in found_points.items():
         distance = np.sqrt((point[0] - coord[0])**2 + (point[1] - coord[1])**2)
         if distance < shortest_distance:
             shortest_distance = distance
             shortest_point = point
+            connecting_direction = d
 
     rr, cc = line(coord[1], coord[0], shortest_point[1], shortest_point[0])
     new_skeleton[rr, cc] = 1 
-    
+
+    # Adding line for agnets to stand on
+    if tenants:
+        spacing= 8
+        if connecting_direction[0] != 0:
+            rr2, cc2 = line(coord[1]- spacing, coord[0], coord[1] + spacing, coord[0])
+            new_skeleton[rr2, cc2] = 1 
+            rr3, cc3 = line(coord[1], coord[0], coord[1], coord[0] - spacing * connecting_direction[0])
+            new_skeleton[rr3, cc3] = 1 
+            rr4, cc4 = line(coord[1]- spacing, coord[0] - spacing * connecting_direction[0], coord[1] + spacing, coord[0] - spacing * connecting_direction[0])
+            new_skeleton[rr4, cc4] = 1 
+        else:
+            rr2, cc2 = line(coord[1], coord[0] - spacing , coord[1], coord[0] + spacing)
+            new_skeleton[rr2, cc2] = 1
+            rr3, cc3 = line(coord[1], coord[0], coord[1] - spacing * connecting_direction[1], coord[0])
+            new_skeleton[rr3, cc3] = 1 
+            rr4, cc4 = line(coord[1] - spacing * connecting_direction[1], coord[0] - spacing, coord[1] - spacing * connecting_direction[1], coord[0] + spacing)
+            new_skeleton[rr4, cc4] = 1 
+   
     return new_skeleton
 
 def gettingTenantWalls(regions, shape):
@@ -122,7 +136,81 @@ def gettingTenantWalls(regions, shape):
         regionPoints[regionType] = currentRegions  
     return regionPoints
 
-  
+def breakThroughWalls(skeleton, blockDict, spacer= 5):
+    # print(skeleton)
+    # plt.imshow(skeleton)
+    result = {}
+    blockSkipper = {}
+    for regionTypes in blockDict:
+        # print(regionTypes)
+        regions = (blockDict[regionTypes])
+        listRegions = []
+        listSkipper = []
+        for region in (regions):
+            workingRegion = []
+            workingSkipper = []
+            skipperCount = 0
+            for index, coordinates in enumerate(region): 
+                if index == 0:
+                    workingRegion.append(coordinates)
+                    continue
+                reference = (region[index - 1])
+                point = coordinates
+                pointsToBeAdded = []
+                reverse = False
+                if (reference[0] == point[0]):
+                    # Vertical Line
+                    xCoordinate = reference[0]
+                    if reference[1] >point [1]:
+                        reverse = True
+                    yCoordinates = [min(reference[1], point[1]) + i for i in range(abs(reference[1] - point[1]) + 1)]
+                    for yCoordinate in yCoordinates:
+                        if skeleton[yCoordinate, xCoordinate] == 1: 
+                            workingSkipper.append(index  + skipperCount * 2)
+                            skipperCount +=1
+                            if yCoordinate - spacer in yCoordinates:
+                                pointsToBeAdded.append((xCoordinate, yCoordinate - spacer))
+                            else:
+                                pointsToBeAdded.append((xCoordinate, min(yCoordinates)))
+                            if yCoordinate + spacer in yCoordinates:
+                                pointsToBeAdded.append((xCoordinate, yCoordinate + spacer))
+                            else:
+                                pointsToBeAdded.append((xCoordinate, max(yCoordinates)))
+                            break
+                else:
+                    # Horizontal Line
+                    xCoordinates = [min(reference[0], point[0]) + i for i in range(abs(reference[0] - point[0]) + 1)]
+                    yCoordinate = reference[1]
+                    if reference[0] >point[0]:
+                        reverse = True
+                    for xCoordinate in xCoordinates:
+                        if skeleton[yCoordinate, xCoordinate] == 1: 
+                            workingSkipper.append(index + skipperCount * 2)
+                            skipperCount +=1
+                            if xCoordinate - spacer in xCoordinates:
+                                pointsToBeAdded.append((xCoordinate - spacer, yCoordinate))
+                            else:
+                                pointsToBeAdded.append((min(xCoordinates), yCoordinate))
+                            if xCoordinate + spacer in xCoordinates:
+                                pointsToBeAdded.append((xCoordinate + spacer, yCoordinate))
+                            else:
+                                pointsToBeAdded.append((max(xCoordinates), yCoordinate))
+                            break
+                if reverse:
+                    for anotherPoint in reversed(pointsToBeAdded):
+                        workingRegion.append((anotherPoint[0], anotherPoint[1]))
+                else:
+                    for anotherPoint in (pointsToBeAdded):
+                        workingRegion.append((anotherPoint[0], anotherPoint[1]))
+                workingRegion.append((point[0], point[1]))
+            # print(region)
+            listRegions.append(workingRegion)
+            listSkipper.append(workingSkipper)
+        # print(listRegions)
+        result[regionTypes] = listRegions
+        blockSkipper[regionTypes] = listSkipper
+    return result, blockSkipper
+
 # Actually the helper functions
 def plotNumpyArrayOverImage(image, skeleton, title="---"):
     """
@@ -158,32 +246,64 @@ def plotLinesOverImage(image, lines, figSize = (10,8), title="---"):
     """
     Function that is used to draw lines over the iamge
     """
+    n = len(lines)
+    for index, contour in enumerate(lines):
+        # For this contour, determine the skip indices (if none provided, use an empty list)
+        # Iterate over each point index in the contour
+        # Wrap around: next index is (j+1) mod n
+        p1 = (contour)
+        p2 = (lines[(index+1) % n])
+        cv2.line(image, p1, p2, (0, 0, 255), 2)
     plt.figure(figsize=figSize)
-    
-    # If a background image is provided, show it.
-    cv2.drawContours(image, [lines], -1, (0,0,255), 2)
     plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     plt.title(title)
     plt.axis('off')
     plt.show()
 
-def plotPOIOverImage(image, POIDict, figSize = (10,8), title="---"):
+def plotPOIOverImage(image, POIDict, POISkipper, figSize=(10,8), title="---"):
     """
-    Given a dictionary like {1: [[(x,y),(x,y) ...],[(x,y),(x,y) ...], ....], 2: ....}
-    Plots out the POI on the image
+    Given a POIDict (e.g., 
+      {1: [[(x,y), (x,y), ...], [(x,y), (x,y), ...], ...], 2: ...}),
+    and a POISkipper dictionary (e.g., 
+      {1: [[1,4], [2], ...], 2: [[], [], ...], 3: [[3], [2], ...]}),
+    where each inner list in POISkipper indicates the indices of the starting points of segments to skip 
+    (i.e., skip drawing the line from that point to the next point),
+    this function draws each contour onto the image accordingly.
+
+    For each contour:
+      - It iterates over each point.
+      - For each segment from point[i] to point[(i+1)%n] (wrapping at the end),
+        it checks if i is in the corresponding skip list.
+      - If not, it draws the line segment in red.
     """
     plt.figure(figsize=figSize)
     
-    # If a background image is provided, show it.
-    for index, listTenants in POIDict.items():
-        for tenant in listTenants:
-            cnt = np.array(tenant, dtype=np.int32).reshape((-1, 1, 2))
-            cv2.drawContours(image, [cnt], -1, (0,0,255), 2)
+    # Loop over each key in POIDict
+    for key, contours in POIDict.items():
+        # Get the corresponding list of skip-lists; if missing, use None
+        skipContours = POISkipper.get(key, None)
+        for i, contour in enumerate(contours):
+            # For this contour, determine the skip indices (if none provided, use an empty list)
+            if skipContours is not None and i < len(skipContours):
+                skip_indices = skipContours[i]
+            else:
+                skip_indices = []
+            
+            n = len(contour)
+            # Iterate over each point index in the contour
+            for j in range(n):
+                # If the current index is in the skip list, skip drawing the segment from this point to the next
+                if j in skip_indices:
+                    continue
+                # Wrap around: next index is (j+1) mod n
+                p1 = tuple(contour[j])
+                p2 = tuple(contour[(j+1) % n])
+                cv2.line(image, p1, p2, (0, 0, 255), 2)
+    
     plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     plt.title(title)
     plt.axis('off')
     plt.show()
-
 
 def base64ToImage(base64_string):
     """
@@ -235,9 +355,9 @@ def processPoints(pointsDict):
             if (index == len(pointsDict) - 1):
                 startingPoint = refinedPoints[0]
                 if checkHorizontal(startingPoint, point):
-                    newPoint = (int(point[0]), int(startingPoint[1]))
+                    newPoint = (int(referencePoint[0]), int(startingPoint[1]))
                 else:
-                    newPoint = (int(startingPoint[0]), int(point[1]))
+                    newPoint = (int(startingPoint[0]), int(referencePoint[1]))
                 refinedPoints.append(newPoint)
             else:
                 if (checkHorizontal(referencePoint, point)):
@@ -245,6 +365,7 @@ def processPoints(pointsDict):
                 else:
                     newPoint = (int(referencePoint[0]), int(point[1]))
                 refinedPoints.append(newPoint)
+    refinedPoints.append(refinedPoints[0])
     return refinedPoints
 
 def checkHorizontal(referencePoint, point):
