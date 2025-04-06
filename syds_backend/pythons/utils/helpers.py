@@ -21,13 +21,13 @@ def extractRoutesArray(base64Img):
     skeleton_pruned = pruned > 0
     return skeleton_pruned.astype(np.uint8)
 
-def extractOuterWalls(base64Img):
+def extractOuterWalls(base64Img, blocksize= 15, constant =5):
     """
     Returns the list of coordinates that makes up the external walls of the building
     """
     image = base64ToImage(base64Img)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 15, 5)
+    binary = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, blocksize, constant)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
     binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
 
@@ -40,15 +40,13 @@ def extractOuterWalls(base64Img):
         approx = cv2.approxPolyDP(contour, epsilon, True)
 
         snappedPts = []
-        for i in range(len(approx)):
-            p1 = tuple(approx[i][0])
+        for i in range(len(approx) -1):
+            if (i == 0):
+                snappedPts.append((approx[i][0][0], approx[i][0][1]))
+            p1 = snappedPts[-1]
             p2 = tuple(approx[(i + 1) % len(approx)][0])
-            # Make sure to go check and fix this later
-            # This is meant to fix the points however, newP2, the fixed point, is not being used
-            newP1, newP2 = snapAngle(p1,p2)
-            snappedPts.append(newP1)
-        snappedPts.append(snappedPts[0])
-        snappedPts = np.array(snappedPts, dtype=np.int32).reshape((-1, 1, 2))
+            _,  newP2 = snapAngle(p1,p2)
+            snappedPts.append(newP2)
         return snappedPts
     
 def createNewPathWithCoordinate(coord, skeleton, limit, tenants=False):
@@ -102,16 +100,25 @@ def createNewPathWithCoordinate(coord, skeleton, limit, tenants=False):
 
     rr, cc = line(coord[1], coord[0], shortest_point[1], shortest_point[0])
     new_skeleton[rr, cc] = 1 
-    if tenants:
-        spacing= 5
+
     # Adding line for agnets to stand on
+    if tenants:
+        spacing= 8
         if connecting_direction[0] != 0:
-            rr2, cc2 = line(coord[1]- spacing, coord[0], coord[1]+spacing, coord[0])
+            rr2, cc2 = line(coord[1]- spacing, coord[0], coord[1] + spacing, coord[0])
             new_skeleton[rr2, cc2] = 1 
+            rr3, cc3 = line(coord[1], coord[0], coord[1], coord[0] - spacing * connecting_direction[0])
+            new_skeleton[rr3, cc3] = 1 
+            rr4, cc4 = line(coord[1]- spacing, coord[0] - spacing * connecting_direction[0], coord[1] + spacing, coord[0] - spacing * connecting_direction[0])
+            new_skeleton[rr4, cc4] = 1 
         else:
             rr2, cc2 = line(coord[1], coord[0] - spacing , coord[1], coord[0] + spacing)
             new_skeleton[rr2, cc2] = 1
-    
+            rr3, cc3 = line(coord[1], coord[0], coord[1] - spacing * connecting_direction[1], coord[0])
+            new_skeleton[rr3, cc3] = 1 
+            rr4, cc4 = line(coord[1] - spacing * connecting_direction[1], coord[0] - spacing, coord[1] - spacing * connecting_direction[1], coord[0] + spacing)
+            new_skeleton[rr4, cc4] = 1 
+   
     return new_skeleton
 
 def gettingTenantWalls(regions, shape):
@@ -239,10 +246,15 @@ def plotLinesOverImage(image, lines, figSize = (10,8), title="---"):
     """
     Function that is used to draw lines over the iamge
     """
+    n = len(lines)
+    for index, contour in enumerate(lines):
+        # For this contour, determine the skip indices (if none provided, use an empty list)
+        # Iterate over each point index in the contour
+        # Wrap around: next index is (j+1) mod n
+        p1 = (contour)
+        p2 = (lines[(index+1) % n])
+        cv2.line(image, p1, p2, (0, 0, 255), 2)
     plt.figure(figsize=figSize)
-    
-    # If a background image is provided, show it.
-    cv2.drawContours(image, [lines], -1, (0,0,255), 2)
     plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     plt.title(title)
     plt.axis('off')
@@ -374,14 +386,3 @@ def checkHorizontal(referencePoint, point):
         return True
     else:
         return False
-    
-def convertPointsToNumpy(coords):
-    """
-    Given a list of tuple of coordinates, convert them into a numpy array in the same format for adding to OuterWalls
-    """
-    if coords[0] != coords[-1]:
-        coords = coords + [coords[0]]
-    
-    # Convert to numpy array with the appropriate shape
-    contour = np.array(coords, dtype=np.int32).reshape((-1, 1, 2))
-    return contour
