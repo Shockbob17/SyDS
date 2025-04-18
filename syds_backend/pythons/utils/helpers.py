@@ -427,7 +427,7 @@ def convertSkeletonToLines(skeleton, epsilon=0.0):
     skeleton_uint8 = (skeleton * 255).astype(np.uint8)
     
     # Find contours in the skeleton. Use RETR_EXTERNAL if the routes are isolated.
-    contours, _ = cv2.findContours(skeleton_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    contours, _ = cv2.findContours(skeleton_uint8, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     
     lines = []
     # Process each contour
