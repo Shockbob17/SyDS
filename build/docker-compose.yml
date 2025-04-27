@@ -5,6 +5,7 @@ services:
     image: syds_frontend
     volumes:
       - ../syds_frontend/.next:/syds_frontend/.next
+      - ../syds_frontend/components:/syds_frontend/components
       - ../syds_frontend/pages:/syds_frontend/pages
       - ../syds_frontend/public:/syds_frontend/public
       - ../syds_frontend/styles:/syds_frontend/styles

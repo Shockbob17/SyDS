@@ -1,8 +1,11 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, List, Union
+import json
 
-app = FastAPI()
+from src.utils.FloorPlanExtractor import floorPlanExtractor
+from src.utils.gridSolver import gridSolver
+from src.utils.mapCropper import mapCropper
 
 app = FastAPI()
 app.add_middleware(
@@ -13,23 +16,75 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
+
+@app.post("/uploadImages")
+async def findImage(images: List[UploadFile] = File(...)):
+    # Save the uploaded files to temporary locations
+    temp_file_paths = []
+    for image in images:
+        contents = await image.read()
+        temp_path = f"/tmp/{image.filename}"
+        with open(temp_path, "wb") as f:
+            f.write(contents)
+        temp_file_paths.append(temp_path)
+
+    # Process the images with mapExtractor
+    extractor = floorPlanExtractor(temp_file_paths)
+    processed_images = extractor.requestRegions()
+
+    return {"status": "success", "results": processed_images}
+
+
+
+@app.post("/extractingWalkway")
+async def extractingWalkway(
+    images: List[UploadFile] = File(...),
+    drawnRegions: str = Form(...)
+):
+    regions = json.loads(drawnRegions)
+    temp_file_paths = []
+    for image in images:
+        contents = await image.read()
+        temp_path = f"/tmp/{image.filename}"
+        with open(temp_path, "wb") as f:
+            f.write(contents)
+        temp_file_paths.append(temp_path)
+    extractor = mapCropper(temp_file_paths, regions)
+    processed_images = extractor.requestWalkways()
+    return {"status": "success", "results": processed_images}
+
+@app.post("/createNumpy")
+async def createNumpy(    images: List[UploadFile] = File(...),
+    drawnRegions: str = Form(...),
+    shapeLabels: str = Form(...)):
+    regions = json.loads(drawnRegions)
+    labels = json.loads(shapeLabels)
+    temp_file_paths = []
+    for image in images:
+        contents = await image.read()
+        temp_path = f"/tmp/{image.filename}"
+        with open(temp_path, "wb") as f:
+            f.write(contents)
+        temp_file_paths.append(temp_path)
+    print(regions)
+    print(labels)
+    return{"status": "success", "results": None}
+
+
+
 @app.post("/findRoutes")
 async def find_routes(request: Request):
     try:
         data = await request.json()  # Extract raw JSON data
         grid = data.get("grid")  # Get 'grid' key
-        print(grid)
-
+        solver = gridSolver(grid)
+        print(solver.routes)
         if not grid or not isinstance(grid, list):
             raise HTTPException(status_code=400, detail="Invalid grid format")
 
         # Example: Dummy response for testing
-        result = {
-            "routes": [
-                {"shop": [2, 3], "bin": [2, 1], "path": [[2, 3], [2, 2], [2, 1]]},
-                {"shop": [4, 3], "bin": [4, 1], "path": [[4, 3], [4, 2], [4, 1]]}
-            ]
-        }
+        result = solver.routes
+        
 
         return result
 
