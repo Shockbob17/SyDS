@@ -202,12 +202,26 @@ def tenant_contour_to_lines_exact(contour, skip_indices):
 
 def save_tenant_lines_shapefile_exact(tenant_dict, tenant_skipper_dict, floor, output_dir="shapes"):
     """
-    Similar to 'save_tenant_lines_shapefile'.  This will produce
-    a shapefile of many two-point LineStrings mirroring what you'd see on the image.
+    • File name pattern:  floor_<floor>_tenant_lines_poi_<poi>.shp
+    • Each file contains ONLY the 2‑point line segments that     *
+      correspond to edges *not* listed in tenant_skipper_dict. 
+
+    Create a separate shapefile for each POI key for each floor:
+      0 → empty_area   1 → tenant   2 → toilet   3 → staircase
+
     """
-    features = []
-    
+    type_map = {
+        0: "empty_area",
+        1: "tenant",
+        2: "toilet",
+        3: "staircase"
+    }
+
+    os.makedirs(output_dir, exist_ok=True)
+
     for poi, contours in tenant_dict.items():
+        cat_name = type_map.get(int(poi), f"unknown_{poi}")
+        features = []
         skip_info = tenant_skipper_dict.get(poi, [])
         for idx, contour in enumerate(contours):
             if idx < len(skip_info):
@@ -219,29 +233,28 @@ def save_tenant_lines_shapefile_exact(tenant_dict, tenant_skipper_dict, floor, o
             
             for seg in segments:
                 features.append({
-                    "poi": poi,
+                    "category": cat_name,
                     "geometry": seg
                 })
 
-    if not features:
-        print(f"No tenant outlines found for floor {floor}.")
-        return
-    
-    gdf = gpd.GeoDataFrame(features, crs=COMMON_CRS)
-    os.makedirs(output_dir, exist_ok=True)
-    out_path = os.path.join(output_dir, f"floor_{floor}_tenant_lines.shp")
-    gdf.to_file(out_path)
-    print(f"Tenant outline lines shapefile saved for floor {floor}: {out_path}")
-    
-    fig, ax = plt.subplots(figsize=(10, 8))
-    gdf.plot(ax=ax, linewidth=2, label="Tenant Outlines")
-    ax.set_title(f"Floor {floor} - Tenant Outlines")
-    ax.set_aspect("equal")
-    ax.invert_yaxis()
-    plt.legend()
-    plt.show()
-    
-    return gdf
+        if not features:
+            print(f"No tenant outlines found for floor {floor}, category {cat_name}.")
+            continue
+        
+        gdf = gpd.GeoDataFrame(features, crs=COMMON_CRS)
+       
+        out_path = os.path.join(output_dir, f"floor_{floor}_{cat_name}_lines.shp")
+        gdf.to_file(out_path)
+        print(f"Tenant outline lines shapefile saved for floor {floor}: {out_path}")
+        
+        fig, ax = plt.subplots(figsize=(10, 8))
+        gdf.plot(ax=ax, linewidth=2, label="Tenant Outlines")
+        ax.set_title(f"Floor {floor} - Tenant Outlines for {cat_name}")
+        ax.set_aspect("equal")
+        ax.invert_yaxis()
+        plt.legend()
+        plt.show()
+        
 
 def save_bin_shapefile(bin_locations, floor, output_dir="shapes"):
     """
@@ -347,3 +360,23 @@ def save_stair_shapefile(stair_locations, floor, output_dir="shapes"):
     ax.invert_yaxis()
     plt.show()
     print(f"Stair shapefile saved for floor {floor}: {shp_path}")
+
+def save_entrypoint_shapefile(entrypoints, floor, output_dir="shapes"):
+    """
+    Save a point shapefile for the EntryPoint(s) of a floor.
+    """
+    if not entrypoints:
+        print(f"No entry points for floor {floor}, skipping.")
+        return
+
+    os.makedirs(output_dir, exist_ok=True)
+    df = gpd.GeoDataFrame(
+        {
+            "feature": ["entry_point"] * len(entrypoints),
+            "geometry": [Point(x, y) for (x, y) in entrypoints]
+        },
+        crs=COMMON_CRS
+    )
+    out_path = os.path.join(output_dir, f"floor_{floor}_entrypoints.shp")
+    df.to_file(out_path)
+    print(f"Entry points shapefile saved for floor {floor}: {out_path}")

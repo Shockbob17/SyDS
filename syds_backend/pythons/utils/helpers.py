@@ -121,6 +121,14 @@ def createNewPathWithCoordinate(coord, skeleton, limit, tenants=False):
    
     return new_skeleton
 
+
+def createPathCoordinates(coord1, coord2, skeleton):
+    new_skeleton = skeleton.copy()
+    rr, cc = line(coord1[1], coord1[0], coord2[1], coord2[0])
+    new_skeleton[rr, cc] = 1 
+    return new_skeleton
+
+
 def gettingTenantWalls(regions, shape):
     """
     Returns a dictionary of list of regions
