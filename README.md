@@ -4,7 +4,7 @@ This is the Github Repository for Trash Matters Infrastructure (TMI), a flexible
 
 TMI is a collaboration between Design and Artificial (DAI) Students from the Singapore University of Technology and Design (SUTD) and Vidacity.
 
-Project Report: insert link here
+Project Report: https://drive.google.com/file/d/10rqj2ozVqZMzmoGtyzEQGFyVaFo8e2WA/view?usp=sharing 
 
 ## Processing Pipeline for TMI
 ![SYDS Preprocessing Pipeline](./images/SYDSPipeline.png)
